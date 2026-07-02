@@ -16,10 +16,9 @@ qt_add_executable(CalibSystemV1
     main.cpp
     mainwindow.cpp
     mainwindow.h
-    mainwindow.ui
 
     user/visaconnection.h user/visaconnection.cpp
-    user/e5080b_driver.h user/e5080b_driver.cpp
+    # user/e5080b_driver.h user/e5080b_driver.cpp
     user/enadriverv2.h user/enadriverv2.cpp
 )
 

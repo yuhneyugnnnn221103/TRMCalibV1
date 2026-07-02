@@ -2,23 +2,31 @@
 
 #include <QMainWindow>
 #include <QTimer>
-#include "user/visaconnection.h"
-#include "user/enadriverv2.h"
 
-QT_BEGIN_NAMESPACE
-namespace Ui { class MainWindow; }
-QT_END_NAMESPACE
+// Forward declarations — tránh include nặng trong header
+class VisaConnection;
+class EnaDriverV2;
+
+class QGroupBox;
+class QLabel;
+class QLineEdit;
+class QPushButton;
+class QDoubleSpinBox;
+class QSpinBox;
+class QPlainTextEdit;
+class QStatusBar;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MainWindow — Test UI cho EnaDriverV2 (ENA E5080B)
+// MainWindow
 //
-// Các chức năng test theo đúng workflow calib TRM:
+// Test UI thuần code C++ Qt — không dùng .ui / Qt Designer.
+// Test các chức năng EnaDriverV2 sẽ dùng trong calib TRM:
 //   1. Kết nối ENA qua LAN (VISA)
 //   2. Load file .csa có sẵn trên máy ENA
-//   3. Cấu hình CW frequency, IFBW, power (override từ UI)
-//   4. Trigger đơn lẻ → đọc S21 và S43 (SDATA)
-//   5. Trigger liên tục (auto-loop) → cập nhật kết quả real-time
-//   6. Đọc error queue, hiển thị log
+//   3. Override cấu hình CW: tần số, IFBW, power
+//   4. Trigger đơn lẻ → đọc S21 và S43
+//   5. Loop trigger real-time
+//   6. Kiểm tra error queue
 // ─────────────────────────────────────────────────────────────────────────────
 class MainWindow : public QMainWindow
 {
@@ -29,44 +37,65 @@ public:
     ~MainWindow();
 
 private slots:
-    // Kết nối / ngắt kết nối
     void onConnectClicked();
     void onDisconnectClicked();
-
-    // Load .csa từ máy ENA
     void onLoadStateClicked();
-
-    // Override thông số (ghi thẳng vào channel 1)
     void onApplyConfigClicked();
-
-    // Đọc cấu hình hiện tại từ máy về UI
     void onReadConfigClicked();
-
-    // Trigger 1 lần → đọc S21 + S43
     void onTriggerOnceClicked();
-
-    // Bắt đầu / dừng trigger liên tục
     void onStartLoopClicked();
     void onStopLoopClicked();
-
-    // Timer tick: trigger + đọc data
     void onLoopTick();
-
-    // Kiểm tra error queue
     void onCheckErrorClicked();
-
-    // Xóa log
     void onClearLogClicked();
 
 private:
-    // Helpers
+    void buildUi();         // tạo toàn bộ widget bằng code
+    void connectSignals();  // kết nối signals/slots
+
     void log(const QString &msg, bool isError = false);
-    void updateMeasDisplay(const ComplexPoint &s21,
-                           const ComplexPoint &s43);
+    void updateMeasDisplay(double s21Amp, double s21Phase,
+                           double s43Amp, double s43Phase);
     void setConnectedState(bool connected);
 
-    Ui::MainWindow      *ui;
-    VisaConnection        *m_visa   = nullptr;
-    EnaDriverV2           *m_vna    = nullptr;
-    QTimer              *m_loopTimer = nullptr;
+    // ── Instruments ──────────────────────────────────────────────────────────
+    VisaConnection *m_visa  = nullptr;
+    EnaDriverV2    *m_vna   = nullptr;
+    QTimer       *m_loopTimer = nullptr;
+
+    // ── Widgets: Connection ──────────────────────────────────────────────────
+    QLineEdit    *m_editVisaAddr  = nullptr;
+    QPushButton  *m_btnConnect    = nullptr;
+    QPushButton  *m_btnDisconnect = nullptr;
+
+    // ── Widgets: Load State ──────────────────────────────────────────────────
+    QLineEdit    *m_editCsaPath   = nullptr;
+    QPushButton  *m_btnLoadState  = nullptr;
+
+    // ── Widgets: Config ──────────────────────────────────────────────────────
+    QDoubleSpinBox *m_spinFreqGHz  = nullptr;
+    QDoubleSpinBox *m_spinIFBWkHz  = nullptr;
+    QDoubleSpinBox *m_spinPowerdBm = nullptr;
+    QPushButton    *m_btnApply     = nullptr;
+    QPushButton    *m_btnReadCfg   = nullptr;
+    QLabel         *m_lblSweepInfo = nullptr;
+    QLabel         *m_lblTraces    = nullptr;
+    QGroupBox      *m_grpConfig    = nullptr;
+
+    // ── Widgets: Trigger ─────────────────────────────────────────────────────
+    QPushButton  *m_btnTrigOnce   = nullptr;
+    QPushButton  *m_btnStartLoop  = nullptr;
+    QPushButton  *m_btnStopLoop   = nullptr;
+    QSpinBox     *m_spinDelay     = nullptr;
+
+    // ── Widgets: Measurement result ──────────────────────────────────────────
+    QLabel       *m_lblS21Amp     = nullptr;
+    QLabel       *m_lblS21Phase   = nullptr;
+    QLabel       *m_lblS43Amp     = nullptr;
+    QLabel       *m_lblS43Phase   = nullptr;
+
+    // ── Widgets: Log ─────────────────────────────────────────────────────────
+    QPlainTextEdit *m_log         = nullptr;
+    QPushButton    *m_btnCheckErr = nullptr;
+    QPushButton    *m_btnClearLog = nullptr;
 };
