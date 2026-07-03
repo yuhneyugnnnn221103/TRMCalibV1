@@ -73,7 +73,7 @@ void MainWindow::buildUi()
 
         auto *row1 = new QHBoxLayout;
         row1->addWidget(new QLabel("VISA Address:"));
-        m_editVisaAddr = new QLineEdit("TCPIP0::192.168.1.10::inst0::INSTR");
+        m_editVisaAddr = new QLineEdit("TCPIP0::192.168.1.100::inst0::INSTR");
         m_editVisaAddr->setMinimumWidth(260);
         row1->addWidget(m_editVisaAddr, 1);
         layout->addLayout(row1);
@@ -362,6 +362,14 @@ void MainWindow::onApplyConfigClicked()
 
 void MainWindow::onReadConfigClicked()
 {
+    m_vna->setSweepType("CW", 1);
+    m_vna->setPoints(1, 1);
+    m_vna->setCwFrequency(1e9, 1);
+            m_vna->setTriggerBusMode(1); ///////////////////////////////////////////////////
+    m_vna->deleteAllTraces(1);
+            m_vna->createTrace("CH1_S21_1", "S21", 1, 1);
+            m_vna->createTrace("CH1_S43_2", "S43", 2, 1);
+
     ChannelConfig cfg = m_vna->getChannelConfig(1);
 
     // Cập nhật spinbox mà không kích hoạt signal
@@ -385,15 +393,24 @@ void MainWindow::onReadConfigClicked()
 
 void MainWindow::onTriggerOnceClicked()
 {
-    if (!m_vna->trigger()) {
-        log("[ERR] Trigger thất bại: " + m_vna->errorQueue(), true);
+
+    bool triggerOk = m_vna->trigger(1, false);
+
+    QString errQueue = m_vna->errorQueue();
+    if (!errQueue.isEmpty() && !errQueue.contains("+0") && !errQueue.contains("No error")) {
+        log(QString("[ERR] VNA báo lỗi trigger: %1").arg(errQueue), true);
         return;
     }
 
-    m_vna->selectTrace("TrS21");
+    if (!triggerOk) {
+        log("[ERR] Quá thời gian phản hồi (Timeout) khi trigger!", true);
+        return;
+    }
+
+    m_vna->selectTrace("CH1_S21_1");
     ComplexPoint s21 = m_vna->readComplexPoint();
 
-    m_vna->selectTrace("TrS43");
+    m_vna->selectTrace("CH1_S43_2");
     ComplexPoint s43 = m_vna->readComplexPoint();
 
     updateMeasDisplay(s21.magnitudeDb(), s21.phaseDeg(),

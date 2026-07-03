@@ -205,9 +205,9 @@ QStringList EnaDriverV2::listTraces(int ch)
 bool EnaDriverV2::setTriggerBusMode(int ch)
 {
     if (!m_connected) return false;
-    m_visa->send("TRIG:SOUR BUS");
-    m_visa->send("TRIG:SCOP ACT");
     m_visa->send(QString("SENS%1:").arg(ch) + "SWE:MODE HOLD");
+    m_visa->send("TRIG:SOUR MAN");
+    // m_visa->send("TRIG:SCOP ACT");
     return waitComplete();
 }
 
@@ -223,7 +223,7 @@ bool EnaDriverV2::trigger(int ch, bool fireAndForget)
 {
     if (!m_connected) return false;
     m_visa->send(QString("SENS%1:").arg(ch) + "SWE:MODE SING");
-    m_visa->send("TRIG:SING");
+    m_visa->send(QString("INIT%1:IMM").arg(ch));
     if (!fireAndForget)
         return waitComplete();
     return true;
@@ -241,7 +241,10 @@ bool EnaDriverV2::waitComplete(int timeoutMs)
     m_visa->setTimeout(timeoutMs);
     QString resp = m_visa->query("*OPC?");
     m_visa->setTimeout(10000);
-    return resp.trimmed() == "1";
+
+    qDebug() << "[DEBUG] OPC Response:" << resp;
+
+    return resp.trimmed() == "+1";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
